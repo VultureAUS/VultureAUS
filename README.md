@@ -1,5 +1,6 @@
 ## Hi there 👋
-
+🌱 I’m currently learning.
+I am student.
 <!--
 **VultureAUS/VultureAUS** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
