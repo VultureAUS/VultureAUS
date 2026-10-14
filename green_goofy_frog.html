@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Green Goofy Frog</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101b25;color:#f3f7e9;font-family:system-ui,Segoe UI,sans-serif;display:grid;place-items:center;min-height:100vh;padding:20px}
+.wrap{width:min(960px,100%)}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+h1{margin:0;font-size:clamp(24px,4vw,38px);letter-spacing:-1px}.frog{color:#9cf05a}.stats{display:flex;gap:10px;align-items:center}.pill{background:#203442;border:1px solid #385263;border-radius:999px;padding:8px 14px;font-weight:700}
+.gamebox{position:relative;border:3px solid #42604a;border-radius:18px;overflow:hidden;box-shadow:0 18px 55px #0008;background:#172e3b}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated;touch-action:none}
+.overlay{position:absolute;inset:0;background:#07131dcc;display:grid;place-items:center;text-align:center;padding:24px}
+.panel{max-width:440px}.panel h2{font-size:34px;margin:0 0 8px}.panel p{line-height:1.5;color:#d4e2d4}
+button{border:0;border-radius:12px;background:#a5ed5b;color:#18301a;font-weight:900;font-size:16px;padding:12px 22px;cursor:pointer}button:hover{filter:brightness(1.08)}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;color:#c6d4d5;font-size:14px}
+.pad{display:flex;gap:8px}.pad button{min-width:54px;padding:12px;background:#284352;color:#f5ffe9;border:1px solid #537064}
+@media(max-width:560px){.controls{justify-content:center}.keys{width:100%;text-align:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>🐸 <span class="frog">Green Goofy Frog</span></h1><div class="stats"><div class="pill">🍈 <span id="score">0</span></div><div class="pill">❤️ <span id="lives">3</span></div><button id="soundToggle" aria-label="Toggle sound" style="padding:8px 12px;font-size:14px">🔊 Sound</button></div></header>
+<div class="gamebox"><canvas id="game" width="900" height="500" aria-label="Green Goofy Frog platform game"></canvas>
+<div class="overlay" id="overlay"><div class="panel"><h2 id="overlayTitle">Green Goofy Frog</h2><p id="overlayText">Hop across the platforms, collect all the flies and avoid the grumpy beetles. Reach the golden lily pad to win!</p><button id="start">Start hopping!</button></div></div></div>
+<div class="controls"><div class="keys">Move: <b>← →</b> or <b>A D</b> &nbsp; Jump: <b>Space / ↑ / W</b></div><div class="pad"><button id="left">◀</button><button id="jump">JUMP ⤴</button><button id="right">▶</button></div></div>
+</div>
+<script>
+(()=>{
+const c=document.getElementById('game'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+const scoreEl=document.getElementById('score'),livesEl=document.getElementById('lives'),overlay=document.getElementById('overlay');
+const platforms=[{x:0,y:455,w:900,h:45},{x:110,y:370,w:150,h:18},{x:330,y:305,w:150,h:18},{x:555,y:240,w:145,h:18},{x:735,y:350,w:120,h:18},{x:690,y:145,w:145,h:18},{x:390,y:175,w:125,h:18},{x:70,y:230,w:130,h:18}];
+const flies=[{x:180,y:335},{x:390,y:270},{x:620,y:205},{x:785,y:315},{x:750,y:110},{x:450,y:140},{x:130,y:195}];
+let frog,beetles,score,lives,keys={},running=false,won=false,last=0,anim=0;
+let audioCtx=null, soundOn=true, musicTimer=null, musicStep=0;
+function audio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
+function tone(freq,duration,type='sine',volume=.08,slide=0){if(!soundOn)return;const a=audio(),o=a.createOscillator(),g=a.createGain(),now=a.currentTime;o.type=type;o.frequency.setValueAtTime(freq,now);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(35,freq+slide),now+duration);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(a.destination);o.start(now);o.stop(now+duration)}
+function noise(duration=.16,volume=.12){if(!soundOn)return;const a=audio(),n=Math.floor(a.sampleRate*duration),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const src=a.createBufferSource(),g=a.createGain();src.buffer=b;g.gain.value=volume;src.connect(g);g.connect(a.destination);src.start()}
+function sfx(name){if(!soundOn)return;if(name==='jump'){tone(230,.12,'sine',.10,260);tone(420,.09,'triangle',.04,180)}
+if(name==='collect'){tone(660,.10,'sine',.09,260);setTimeout(()=>tone(990,.16,'sine',.07,180),65);setTimeout(()=>tone(1320,.12,'triangle',.045,100),125)}
+if(name==='hit'){noise(.18,.16);tone(150,.25,'sawtooth',.07,-90);setTimeout(()=>tone(95,.22,'triangle',.06,-35),100)}
+if(name==='lose'){tone(420,.18,'triangle',.07,-170);setTimeout(()=>tone(260,.28,'triangle',.07,-130),150);setTimeout(()=>tone(155,.35,'sine',.06,-55),320)}
+if(name==='win'){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.24,'triangle',.07,80),i*135));setTimeout(()=>tone(1318,.5,'sine',.07,100),570)}
+if(name==='start'){[330,440,554,660].forEach((f,i)=>setTimeout(()=>tone(f,.12,'square',.035,35),i*75))}}
+function startMusic(){if(!soundOn||musicTimer)return;const notes=[392,494,587,494,440,523,659,523];musicTimer=setInterval(()=>{if(!running||!soundOn)return;tone(notes[musicStep%notes.length],.20,'triangle',.018);if(musicStep%4===0)tone(130,.12,'sine',.012);musicStep++},260)}
+function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
+function reset(){frog={x:35,y:405,vx:0,vy:0,w:34,h:38,on:false,face:1,inv:0};beetles=[{x:350,y:278,lo:335,hi:455,v:1.5},{x:735,y:323,lo:740,hi:835,v:1.25}];score=0;lives=3;flies.forEach(f=>f.got=false);updateStats()}
+function updateStats(){scoreEl.textContent=score; livesEl.textContent=lives}
+function start(){audio();sfx('start');reset();won=false;running=true;overlay.style.display='none';last=performance.now();startMusic();requestAnimationFrame(loop)}
+function end(title,msg){running=false;stopMusic();sfx(title.includes('WIN')?'win':'lose');document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayText').textContent=msg;document.getElementById('start').textContent='Play again';overlay.style.display='grid'}
+function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+function draw(){
+let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5bb8c0');g.addColorStop(1,'#c7e89b');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#ffffff30';for(let i=0;i<6;i++){let x=(i*173+anim*.12)%1000-50;ctx.beginPath();ctx.arc(x,75+(i%3)*36,22,0,Math.PI*2);ctx.arc(x+22,74+(i%3)*36,28,0,Math.PI*2);ctx.arc(x+48,80+(i%3)*36,19,0,Math.PI*2);ctx.fill()}
+rect(0,440,W,60,'#2c7547');for(let i=0;i<35;i++){let x=i*29;rect(x,435+(i%3)*4,3,12,'#75b94e')}
+platforms.forEach((p,i)=>{rect(p.x,p.y,p.w,p.h,'#397c4e');rect(p.x,p.y,p.w,5,'#9de36b');for(let x=p.x+10;x<p.x+p.w-5;x+=25)rect(x,p.y+8,3,5,'#285d42')});
+flies.forEach(f=>{if(f.got)return;ctx.fillStyle='#ffe96b';ctx.beginPath();ctx.ellipse(f.x,f.y,7,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(f.x-5,f.y-5,4,3,-.5,0,Math.PI*2);ctx.ellipse(f.x+5,f.y-5,4,3,.5,0,Math.PI*2);ctx.fill();rect(f.x-1,f.y-2,2,2,'#483d22')});
+beetles.forEach(b=>{ctx.fillStyle='#713d34';ctx.beginPath();ctx.ellipse(b.x,b.y,17,11,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f5dfb5';ctx.fillRect(b.x+6,b.y-5,4,4);ctx.fillRect(b.x-5,b.y-5,4,4);rect(b.x-10,b.y+8,4,5,'#51302a');rect(b.x+8,b.y+8,4,5,'#51302a')});
+if(frog.inv%8<4||frog.inv===0){ctx.fillStyle='#42bd45';ctx.beginPath();ctx.ellipse(frog.x+17,frog.y+23,18,15,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#72e85c';ctx.beginPath();ctx.arc(frog.x+8,frog.y+9,9,0,Math.PI*2);ctx.arc(frog.x+26,frog.y+9,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(frog.x+8,frog.y+8,5,0,Math.PI*2);ctx.arc(frog.x+26,frog.y+8,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#18251b';ctx.beginPath();ctx.arc(frog.x+9,frog.y+8,2.5,0,Math.PI*2);ctx.arc(frog.x+27,frog.y+8,2.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#174b28';ctx.lineWidth=2;ctx.beginPath();ctx.arc(frog.x+17,frog.y+20,7,.15,Math.PI-.15);ctx.stroke();rect(frog.x+4,frog.y+33,9,5,'#269c3d');rect(frog.x+22,frog.y+33,9,5,'#269c3d')}
+ctx.fillStyle='#f9d44c';ctx.beginPath();ctx.ellipse(858,425,23,8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff4b0';ctx.font='bold 13px system-ui';ctx.fillText('GOAL',837,408);
+}
+function update(dt){
+anim+=dt;let dir=(keys.right?1:0)-(keys.left?1:0);frog.vx=dir*230;if(dir)frog.face=dir;
+if((keys.jump||keys.up)&&frog.on){frog.vy=-520;frog.on=false;sfx('jump')}
+frog.vy+=1250*dt;frog.x+=frog.vx*dt;frog.y+=frog.vy*dt;frog.on=false;
+if(frog.x<0)frog.x=0;if(frog.x+frog.w>W)frog.x=W-frog.w;
+for(const p of platforms){if(frog.vy>=0&&frog.x+frog.w>p.x&&frog.x<p.x+p.w&&frog.y+frog.h>=p.y&&frog.y+frog.h-frog.vy*dt<=p.y){frog.y=p.y-frog.h;frog.vy=0;frog.on=true}}
+beetles.forEach(b=>{b.x+=b.v*110*dt;if(b.x<b.lo||b.x>b.hi)b.v*=-1;if(frog.inv<=0&&frog.x+frog.w>b.x-13&&frog.x<b.x+13&&frog.y+frog.h>b.y-10&&frog.y<b.y+12){lives--;sfx('hit');frog.inv=100;frog.x=30;frog.y=400;frog.vy=0;updateStats();if(lives<=0)end('Oh, frog crumbs!','The beetles got you. Give it another hop!')}});
+flies.forEach(f=>{if(!f.got&&Math.hypot(f.x-(frog.x+17),f.y-(frog.y+18))<27){f.got=true;score+=10;sfx('collect');updateStats()}});
+if(frog.y>H+50){lives--;sfx('hit');frog.x=30;frog.y=400;frog.vy=0;frog.inv=100;updateStats();if(lives<=0)end('Splash!','You ran out of lives. Try again!')}
+if(frog.inv>0)frog.inv--;
+if(frog.x>820&&frog.y>380){if(flies.every(f=>f.got))end('RIBBIT! YOU WIN!','You collected every fly and reached the golden lily pad. You are a hopping legend!');else{frog.x=805}}
+}
+function loop(t){if(!running)return;let dt=Math.min((t-last)/1000,.033);last=t;update(dt);draw();if(running)requestAnimationFrame(loop)}
+function key(e,down){let k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup',' ','a','d','w'].includes(k))e.preventDefault();if(k==='arrowleft'||k==='a')keys.left=down;if(k==='arrowright'||k==='d')keys.right=down;if(k===' '||k==='arrowup'||k==='w')keys.jump=keys.up=down}
+window.addEventListener('keydown',e=>key(e,true));window.addEventListener('keyup',e=>key(e,false));window.addEventListener('blur',()=>keys={});
+function hold(id,name){let el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[name]=true;el.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,()=>keys[name]=false))}
+hold('left','left');hold('right','right');hold('jump','jump');document.getElementById('start').onclick=start;
+document.getElementById('soundToggle').onclick=()=>{soundOn=!soundOn;document.getElementById('soundToggle').textContent=soundOn?'🔊 Sound':'🔇 Muted';if(soundOn){audio();if(running)startMusic()}else stopMusic()};reset();draw();
+})();
+</script>
+</body></html>
