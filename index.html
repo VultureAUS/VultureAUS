@@ -1,139 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en-AU">
 <head>
-  <meta charset="UTF-8">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <meta
-    name="description"
-    content="A simple test website deployed using GitHub and Vercel."
-  >
-
-  <title>A Test Website</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      min-height: 100vh;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #0f172a;
-      color: #ffffff;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: 30px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 750px;
-      text-align: center;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 8px 14px;
-      margin-bottom: 25px;
-
-      border: 1px solid #334155;
-      border-radius: 20px;
-
-      color: #94a3b8;
-      font-size: 14px;
-    }
-
-    h1 {
-      font-size: clamp(42px, 8vw, 72px);
-      margin-bottom: 20px;
-    }
-
-    p {
-      max-width: 600px;
-      margin: 0 auto 35px;
-
-      color: #cbd5e1;
-      font-size: 20px;
-      line-height: 1.6;
-    }
-
-    .button {
-      display: inline-block;
-
-      padding: 14px 28px;
-
-      background: #ffffff;
-      color: #0f172a;
-
-      border-radius: 8px;
-
-      text-decoration: none;
-      font-weight: bold;
-
-      transition: 0.2s ease;
-    }
-
-    .button:hover {
-      transform: translateY(-2px);
-      opacity: 0.9;
-    }
-
-    footer {
-      margin-top: 70px;
-
-      color: #64748b;
-      font-size: 14px;
-    }
-
-    .status {
-      margin-top: 25px;
-
-      color: #22c55e;
-      font-size: 14px;
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101217">
+  <meta name="description" content="Practical technology, built around your business. Zaptech Australia helps small and medium businesses with web and software development, AI automation, business email, cloud services, cyber security and technical support.">
+  <meta property="og:title" content="Zaptech Australia — Get cracking. Keep growing.">
+  <meta property="og:description" content="Practical technology, built around your business.">
+  <meta property="og:type" content="website">
+  <title>Zaptech Australia — Get cracking. Keep growing.</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./script.js" defer></script>
 </head>
-
 <body>
-
-  <main class="container">
-
-    <div class="badge">
-      GitHub + Vercel Test
-    </div>
-
-    <h1>Hello World 👋</h1>
-
-    <p>
-      This is a simple static HTML website hosted from GitHub
-      and deployed using Vercel.
-    </p>
-
-    <a
-      class="button"
-      href="https://www.zaptech.com.au"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Visit Zaptech Australia
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header shell">
+    <a class="brand" href="#home" aria-label="Zaptech Australia home">
+      <svg class="brand-mark" viewBox="12 50 276 190" aria-hidden="true"><path d="M24 82 46 55H154L72 204H113L198 57 284 232H253L197 120 133 232H16L102 82Z"/></svg>
+      <span>Zaptech Australia</span>
     </a>
-
-    <div class="status">
-      ● Website is online
-    </div>
-
-    <footer>
-      © 2026 TFZA TRUST
-    </footer>
-
+    <nav aria-label="Main navigation">
+      <a class="nav-home" href="#home" aria-current="page">Home</a>
+      <a class="nav-contact" href="#contact">Contact</a>
+    </nav>
+  </header>
+  <main id="main" class="shell">
+    <section id="home" class="hero" aria-labelledby="hero-title">
+      <svg class="hero-mark" viewBox="0 0 300 250" aria-hidden="true">
+        <defs><linearGradient id="outline" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#a8e8cd" stop-opacity="0"/><stop offset="0.35" stop-color="#a8e8cd" stop-opacity="0.65"/><stop offset="1" stop-color="#a8e8cd"/></linearGradient></defs>
+        <path d="M24 55 46 28H154L72 177H113L198 30 284 205H253L197 93 133 205H16L102 55Z"/>
+      </svg>
+      <div class="hero-copy">
+        <a class="phone" href="tel:+61341507515" aria-label="Call Zaptech Australia on 03 4150 7515">03 4150 7515</a>
+        <h1 id="hero-title">Get cracking.<br><span>Keep growing.</span></h1>
+        <p class="hero-description">Practical technology, built around your business.</p>
+        <a class="button hero-button" href="#contact">Let's talk <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg></a>
+      </div>
+    </section>
+    <section class="services" aria-labelledby="services-title">
+      <h2 id="services-title" class="visually-hidden">Technology services for small and medium businesses</h2>
+      <a class="service" href="#contact" data-service="Web &amp; Software Development">
+        <span class="service-number" aria-hidden="true">01</span><h3>Web &amp; Software<br class="desktop-break"> Development</h3>
+        <p>Custom websites, software and games, built around your ideas and business needs.</p>
+        <svg class="service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg>
+      </a>
+      <a class="service" href="#contact" data-service="AI &amp; Automation">
+        <span class="service-number" aria-hidden="true">02</span><h3>AI &amp; Automation</h3>
+        <p>We set up and manage AI agents that handle routine tasks, so you can focus on running your business.</p>
+        <svg class="service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg>
+      </a>
+      <a class="service" href="#contact" data-service="Business Email &amp; Cloud">
+        <span class="service-number" aria-hidden="true">03</span><h3>Business Email &amp; Cloud</h3>
+        <p>We set up email with your business domain and manage your cloud services, keeping your team connected and everything running smoothly.</p>
+        <svg class="service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg>
+      </a>
+      <a class="service" href="#contact" data-service="Business Cyber Security">
+        <span class="service-number" aria-hidden="true">04</span><h3>Business Cyber Security</h3>
+        <p>We help protect your business computers, accounts and data from malware, scams and unauthorised access.</p>
+        <svg class="service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg>
+      </a>
+      <a class="service" href="#contact" data-service="Technical Support">
+        <span class="service-number" aria-hidden="true">05</span><h3>Technical Support</h3>
+        <p>From health checks and virus removal to system recovery and upgrades, we keep your business computers running smoothly.</p>
+        <svg class="service-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg>
+      </a>
+    </section>
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <div class="contact-copy">
+        <p class="eyebrow">Let's work together</p>
+        <h2 id="contact-title">Tell us what you<br class="desktop-break"> have in mind.</h2>
+        <p>Whether you have a clear idea or just want to explore what's possible, we'd love to hear from you. Send us a message and we'll be in touch.</p>
+      </div>
+      <form id="contact-form" action="mailto:contact@zaptech.com.au" method="post" enctype="text/plain" aria-label="Contact Zaptech Australia" aria-describedby="form-note">
+        <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" autocomplete="name" maxlength="120" required></div>
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
+        <div class="field select-field"><label for="service">What can we help with?</label><select id="service" name="service" required><option value="" selected disabled>Select a service</option><option>Web &amp; Software Development</option><option>AI &amp; Automation</option><option>Business Email &amp; Cloud</option><option>Business Cyber Security</option><option>Technical Support</option><option>Something else</option></select></div>
+        <div class="field message-field"><label for="message">Message</label><textarea id="message" name="message" rows="3" maxlength="5000" required></textarea></div>
+        <button class="button send-button" type="submit">Send enquiry <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg></button>
+        <p class="form-note" id="form-note">Opens your email app to send to <a href="mailto:contact@zaptech.com.au">contact@zaptech.com.au</a>.</p>
+        <p class="form-status" id="form-status" role="status" hidden></p>
+        <noscript><p class="form-note">You can also email <a href="mailto:contact@zaptech.com.au">contact@zaptech.com.au</a> directly.</p></noscript>
+      </form>
+    </section>
   </main>
-
+  <footer class="shell site-footer"><span>© <span id="year">2026</span> Zaptech Australia</span><a href="tel:+61341507515">03 4150 7515</a></footer>
 </body>
 </html>
