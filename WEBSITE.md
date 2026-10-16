@@ -13,7 +13,11 @@ Responsive website built from the approved charcoal-and-mint design. No build st
 - With SMTP, the success reference is an application-generated enquiry ID included in the email, Message-ID header and Postmark metadata; it is not Postmark's REST MessageID. With REST, the reference remains Postmark's MessageID. Private runtime logs record transport acceptance/reference or safe error codes without credentials or enquiry content. `/api/contact?check=server` performs a REST authentication check and reports only server ID and delivery type, never tokens, hooks or message content. It does not test SMTP availability. Compare the ID to the server shown in Postmark; sandbox servers do not deliver real mail.
 - Clicking a service selects it in the contact form.
 
-## Postmark activation
+## JetEmail activation
+
+The verified JetEmail domain can send using SMTP on port 587 with mandatory STARTTLS. Create an SMTP user allowed to send from zaptech.com.au, then save JETEMAIL_SMTP_HOST (the exact host shown in JetEmail), JETEMAIL_SMTP_USERNAME and JETEMAIL_SMTP_PASSWORD as Production environment variables in Vercel. Redeploy. Do not put credentials in source code or chat. When these three values are present, JetEmail is selected instead of Postmark; partial configuration disables sending to avoid silently using the wrong provider. No automatic provider fallback or retries occur. The email recipient, reply-to behavior, spam checks, private acceptance logs and application reference are retained. Confirm delivery with an authorised live test. Domain verification alone does not activate this connection.
+
+## Postmark setup (previous provider)
 
 1. Use a Postmark server with live transactional sending approved and zaptech.com.au verified. The standard `outbound` transactional message stream is used.
 2. In Vercel project `website`, add **POSTMARK_SERVER_TOKEN** as a sensitive Production environment variable. Use a **Server API Token**, not the account-management token. Do not put the real value into a file, source code, browser script, commit, chat or screenshot.

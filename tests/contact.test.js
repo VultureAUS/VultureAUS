@@ -12,6 +12,9 @@ beforeEach(() => {
   handler = require('../api/contact.js');
   process.env.POSTMARK_SERVER_TOKEN = 'mock-server-token';
   process.env.POSTMARK_TRANSPORT = 'api';
+  delete process.env.JETEMAIL_SMTP_HOST;
+  delete process.env.JETEMAIL_SMTP_USERNAME;
+  delete process.env.JETEMAIL_SMTP_PASSWORD;
   delete process.env.CONTACT_ALLOWED_ORIGINS;
   delete process.env.VERCEL;
   sent = [];
@@ -203,6 +206,36 @@ test('SMTP rejection and timeout fail without API fallback or automatic retry', 
     assert.equal(closed, 3);
     assert.equal(sent.length, 0);
   } finally { nodemailer.createTransport = original; }
+});
+
+test('JetEmail takes precedence, uses separate SMTP credentials and does not query Postmark', async () => {
+  const nodemailer = require('nodemailer');
+  const original = nodemailer.createTransport;
+  delete process.env.POSTMARK_SERVER_TOKEN;
+  process.env.JETEMAIL_SMTP_HOST = 'smtp.example.test';
+  process.env.JETEMAIL_SMTP_USERNAME = 'mock-jet-user';
+  process.env.JETEMAIL_SMTP_PASSWORD = 'mock-jet-secret';
+  let options, message;
+  nodemailer.createTransport = config => { options = config; return { sendMail: async mail => { message = mail; return { accepted: ['contact@zaptech.com.au'], rejected: [], response: '250 Accepted' }; }, close() {} }; };
+  try {
+    assert.deepEqual((await call({ method: 'GET' })).body, { enabled: true });
+    const diagnostic = await call({ method: 'GET', url: '/api/contact?check=server' });
+    assert.equal(diagnostic.body.provider, 'JetEmail');
+    assert(!JSON.stringify(diagnostic.body).includes('mock-jet-secret'));
+    assert.equal((await call()).code, 200);
+    assert.equal(options.host, 'smtp.example.test');
+    assert.deepEqual(options.auth, { user: 'mock-jet-user', pass: 'mock-jet-secret' });
+    assert.equal(options.requireTLS, true);
+    assert.equal(message.headers['X-PM-Message-Stream'], undefined);
+    assert.equal(sent.length, 0);
+  } finally { nodemailer.createTransport = original; }
+});
+
+test('incomplete JetEmail credentials disable sending rather than falling back to Postmark', async () => {
+  process.env.JETEMAIL_SMTP_HOST = 'smtp.example.test';
+  assert.deepEqual((await call({ method: 'GET' })).body, { enabled: false });
+  assert.equal((await call()).code, 503);
+  assert.equal(sent.length, 0);
 });
 
 test('diagnostics identify sandbox and invalid tokens without sending mail', async () => {
