@@ -9,6 +9,7 @@ Responsive website built from the approved charcoal-and-mint design. No build st
 - With Postmark configured, enquiries submit directly to `/api/contact`, which sends a transactional email from Zaptech Australia <contact@zaptech.com.au> to contact@zaptech.com.au. The visitor's email is set as Reply-To. The destination and sender cannot be overridden by visitors.
 - The page checks sending availability without exposing credentials. Until the token is configured (or if that initial check fails), the existing email-app flow remains available and clearly labelled. JavaScript-disabled visitors can use the email-app form or direct email link.
 - Success is shown only after Postmark accepts the email with ErrorCode 0. Errors preserve entered fields. Requests are not automatically retried after network errors, to avoid duplicate emails.
+- The success message includes Postmark's message ID to help trace delivery. `/api/contact?check=server` performs a read-only authentication check and reports only server ID and delivery type, never tokens, hooks or message content. Compare the ID to the server shown in Postmark; sandbox servers do not deliver real mail.
 - Clicking a service selects it in the contact form.
 
 ## Postmark activation

@@ -62,7 +62,8 @@ contactForm.addEventListener('submit', async (event) => {
     }
     contactForm.reset();
     startedAt = Date.now();
-    showStatus('Thanks — your enquiry has been submitted. We\'ll be in touch.', 'success');
+    const reference = typeof result.messageId === 'string' ? ` Reference: ${result.messageId}` : '';
+    showStatus(`Thanks — your enquiry has been submitted. We'll be in touch.${reference}`, 'success');
   } catch (error) {
     const message = error.name === 'TimeoutError' || error.name === 'AbortError' || error instanceof TypeError
       ? 'We could not confirm your submission. Your details are still here. Please email contact@zaptech.com.au or call 03 4150 7515 before trying again.'

@@ -20,6 +20,22 @@ function isConfigured() {
   return Boolean(token && token !== 'POSTMARK_API_TEST');
 }
 
+async function checkServer() {
+  if (!isConfigured()) return { enabled: false, tokenValid: false };
+  try {
+    const response = await fetch('https://api.postmarkapp.com/server', {
+      headers: { Accept: 'application/json', 'X-Postmark-Server-Token': process.env.POSTMARK_SERVER_TOKEN.trim() },
+      signal: AbortSignal.timeout(8000)
+    });
+    const server = await response.json();
+    if (!response.ok || !Number.isInteger(server.ID)) return { enabled: true, tokenValid: false };
+    // The upstream response includes API tokens: return only these non-secret diagnostic fields.
+    return { enabled: true, tokenValid: true, serverId: server.ID, deliveryType: server.DeliveryType || 'Live' };
+  } catch {
+    return { enabled: true, tokenValid: null, diagnosticError: 'Postmark could not be reached.' };
+  }
+}
+
 function allowedOrigins() {
   const origins = new Set(['https://website-zaptech1.vercel.app']);
   for (const host of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) {
@@ -55,7 +71,10 @@ function rateLimited(req) {
 module.exports = async function contact(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (req.method === 'GET') return reply(res, 200, { enabled: isConfigured() });
+  if (req.method === 'GET') {
+    const diagnostic = new URL(req.url || '/', 'https://website-zaptech1.vercel.app').searchParams.get('check') === 'server';
+    return reply(res, 200, diagnostic ? await checkServer() : { enabled: isConfigured() });
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
     return reply(res, 405, { error: 'Method not allowed.' });
@@ -133,10 +152,10 @@ module.exports = async function contact(req, res) {
       })
     });
     const result = await response.json();
-    if (!response.ok || result.ErrorCode !== 0) {
+    if (!response.ok || result.ErrorCode !== 0 || typeof result.MessageID !== 'string' || !result.MessageID.trim()) {
       return reply(res, 502, { error: 'We could not submit your enquiry. Your details are still here. Please email contact@zaptech.com.au or call 03 4150 7515.' });
     }
-    return reply(res, 200, { ok: true });
+    return reply(res, 200, { ok: true, messageId: result.MessageID });
   } catch (error) {
     return reply(res, 502, { error: 'We could not confirm your submission. Please email contact@zaptech.com.au or call 03 4150 7515 before trying again.' });
   }

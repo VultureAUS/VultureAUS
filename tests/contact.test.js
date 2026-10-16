@@ -21,9 +21,9 @@ beforeEach(() => {
 });
 afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv }; });
 
-async function call({ method = 'POST', body = valid(), headers = {}, ip = '127.0.0.1' } = {}) {
+async function call({ method = 'POST', body = valid(), headers = {}, ip = '127.0.0.1', url = '/api/contact' } = {}) {
   const response = { headers: {}, setHeader(key, value) { this.headers[key] = value; }, status(value) { this.code = value; return this; }, json(value) { this.body = value; return this; } };
-  await handler({ method, body, headers: { origin: 'https://website-zaptech1.vercel.app', 'content-type': 'application/json', ...headers }, socket: { remoteAddress: ip } }, response);
+  await handler({ method, body, url, headers: { origin: 'https://website-zaptech1.vercel.app', 'content-type': 'application/json', ...headers }, socket: { remoteAddress: ip } }, response);
   return response;
 }
 
@@ -42,7 +42,7 @@ test('sends only to Zaptech with visitor Reply-To and plain-text body', async ()
   const body = { ...valid(), to: 'attacker@example.com', from: 'spoof@example.com', message: '<script>alert(1)</script> & question' };
   const response = await call({ body });
   assert.equal(response.code, 200);
-  assert.deepEqual(response.body, { ok: true });
+  assert.deepEqual(response.body, { ok: true, messageId: 'mock-message' });
   assert.equal(sent.length, 1);
   assert.equal(sent[0].url, 'https://api.postmarkapp.com/email');
   assert.equal(sent[0].options.headers['X-Postmark-Server-Token'], 'mock-server-token');
@@ -111,6 +111,7 @@ test('throttles repeated requests per IP without blocking a different IP', async
 test('provider rejection, authentication failure, timeout and malformed responses never report success', async () => {
   for (const provider of [
     async () => ({ ok: true, json: async () => ({ ErrorCode: 300 }) }),
+    async () => ({ ok: true, json: async () => ({ ErrorCode: 0 }) }),
     async () => ({ ok: false, json: async () => ({ ErrorCode: 10, Message: 'mock sensitive provider detail' }) }),
     async () => { throw new Error('mock network error'); },
     async () => ({ ok: true, json: async () => { throw new SyntaxError('invalid'); } })
@@ -121,4 +122,24 @@ test('provider rejection, authentication failure, timeout and malformed response
     assert.equal(response.body.ok, undefined);
     assert(!JSON.stringify(response.body).includes('mock sensitive'));
   }
+});
+
+test('server diagnostics expose only selected metadata, never upstream tokens or hooks', async () => {
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.postmarkapp.com/server');
+    assert.equal(options.headers['X-Postmark-Server-Token'], 'mock-server-token');
+    return { ok: true, json: async () => ({ ID: 11146424, Name: 'Zaptech', DeliveryType: 'Live', ApiTokens: ['do-not-leak'], InboundHookUrl: 'private-hook' }) };
+  };
+  const response = await call({ method: 'GET', url: '/api/contact?check=server' });
+  assert.deepEqual(response.body, { enabled: true, tokenValid: true, serverId: 11146424, deliveryType: 'Live' });
+  assert(!JSON.stringify(response.body).includes('do-not-leak'));
+  assert(!JSON.stringify(response.body).includes('private-hook'));
+});
+
+test('diagnostics identify sandbox and invalid tokens without sending mail', async () => {
+  global.fetch = async () => ({ ok: true, json: async () => ({ ID: 12, DeliveryType: 'Sandbox' }) });
+  assert.equal((await call({ method: 'GET', url: '/api/contact?check=server' })).body.deliveryType, 'Sandbox');
+  global.fetch = async () => ({ ok: false, json: async () => ({ ErrorCode: 10 }) });
+  assert.deepEqual((await call({ method: 'GET', url: '/api/contact?check=server' })).body, { enabled: true, tokenValid: false });
+  assert.equal(sent.length, 0);
 });
