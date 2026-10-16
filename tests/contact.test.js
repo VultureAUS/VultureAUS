@@ -16,7 +16,7 @@ beforeEach(() => {
   sent = [];
   global.fetch = async (url, options) => {
     sent.push({ url, options, body: JSON.parse(options.body) });
-    return { ok: true, json: async () => ({ ErrorCode: 0, MessageID: 'mock-message' }) };
+    return { ok: true, status: 200, json: async () => ({ ErrorCode: 0, Message: 'OK', MessageID: 'mock-message' }) };
   };
 });
 afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv }; });
@@ -36,6 +36,9 @@ test('availability reveals no token; missing and test tokens do not enable sendi
   assert.deepEqual((await call({ method: 'GET' })).body, { enabled: false });
   process.env.POSTMARK_SERVER_TOKEN = 'POSTMARK_API_TEST';
   assert.deepEqual((await call({ method: 'GET' })).body, { enabled: false });
+  process.env.POSTMARK_SERVER_TOKEN = '  postmark_api_test  ';
+  assert.deepEqual((await call({ method: 'GET' })).body, { enabled: false });
+  assert.equal((await call()).code, 503);
   assert.equal(sent.length, 0);
 });
 test('sends only to Zaptech with visitor Reply-To and plain-text body', async () => {
@@ -122,6 +125,20 @@ test('provider rejection, authentication failure, timeout and malformed response
     assert.equal(response.body.ok, undefined);
     assert(!JSON.stringify(response.body).includes('mock sensitive'));
   }
+});
+
+test('dry-run acceptance never reports a sent enquiry and logs no token or enquiry content', async () => {
+  const originalInfo = console.info;
+  const logs = [];
+  console.info = (...values) => logs.push(values.join(' '));
+  try {
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ErrorCode: 0, Message: 'Test job accepted', MessageID: 'dry-run-reference' }) });
+    const response = await call();
+    assert.equal(response.code, 502);
+    assert.equal(response.body.ok, undefined);
+    assert(logs.join('').includes('Test job accepted'));
+    for (const secret of ['mock-server-token', 'Test Customer', 'customer@example.com', 'A test enquiry']) assert(!logs.join('').includes(secret));
+  } finally { console.info = originalInfo; }
 });
 
 test('server diagnostics expose only selected metadata, never upstream tokens or hooks', async () => {

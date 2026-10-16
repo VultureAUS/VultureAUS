@@ -17,7 +17,7 @@ function reply(res, status, body) {
 
 function isConfigured() {
   const token = process.env.POSTMARK_SERVER_TOKEN?.trim();
-  return Boolean(token && token !== 'POSTMARK_API_TEST');
+  return Boolean(token && token.toUpperCase() !== 'POSTMARK_API_TEST');
 }
 
 async function checkServer() {
@@ -152,7 +152,17 @@ module.exports = async function contact(req, res) {
       })
     });
     const result = await response.json();
-    if (!response.ok || result.ErrorCode !== 0 || typeof result.MessageID !== 'string' || !result.MessageID.trim()) {
+    // Keep provider diagnostics in private runtime logs; never log credentials or enquiry fields.
+    const providerMessage = typeof result.Message === 'string' ? result.Message.trim() : '';
+    const isLiveAcceptance = providerMessage === 'OK';
+    console.info('postmark_send_result', JSON.stringify({
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
+      status: response.status,
+      errorCode: Number.isInteger(result.ErrorCode) ? result.ErrorCode : null,
+      providerMessage: ['OK', 'Test job accepted'].includes(providerMessage) ? providerMessage : 'Unrecognised response',
+      messageId: typeof result.MessageID === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(result.MessageID) ? result.MessageID : null
+    }));
+    if (!response.ok || result.ErrorCode !== 0 || !isLiveAcceptance || typeof result.MessageID !== 'string' || !result.MessageID.trim()) {
       return reply(res, 502, { error: 'We could not submit your enquiry. Your details are still here. Please email contact@zaptech.com.au or call 03 4150 7515.' });
     }
     return reply(res, 200, { ok: true, messageId: result.MessageID });
