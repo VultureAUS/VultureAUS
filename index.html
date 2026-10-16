@@ -73,6 +73,7 @@
         <p>Whether you have a clear idea or just want to explore what's possible, we'd love to hear from you. Send us a message and we'll be in touch.</p>
       </div>
       <form id="contact-form" action="mailto:contact@zaptech.com.au" method="post" enctype="text/plain" aria-label="Contact Zaptech Australia" aria-describedby="form-note">
+        <div class="form-trap" aria-hidden="true"><label for="company-website">Leave this field empty</label><input id="company-website" name="companyWebsite" type="text" tabindex="-1" autocomplete="off"></div>
         <div class="field"><label for="name">Name</label><input id="name" name="name" type="text" autocomplete="name" maxlength="120" required></div>
         <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
         <div class="field select-field"><label for="service">What can we help with?</label><select id="service" name="service" required><option value="" selected disabled>Select a service</option><option>Web &amp; Software Development</option><option>AI &amp; Automation</option><option>Business Email &amp; Cloud</option><option>Business Cyber Security</option><option>Technical Support</option><option>Something else</option></select></div>
