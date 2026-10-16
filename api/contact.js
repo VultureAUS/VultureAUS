@@ -1,6 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
+const { sendSmtp } = require('../lib/smtp');
 
 const SERVICES = new Set([
   'Web & Software Development', 'AI & Automation', 'Business Email & Cloud',
@@ -127,6 +128,10 @@ module.exports = async function contact(req, res) {
       res.setHeader('Retry-After', '600');
       return reply(res, 429, { error: 'Too many enquiries in a short time. Please try again in 10 minutes, or call 03 4150 7515.' });
     }
+    if ((process.env.POSTMARK_TRANSPORT || 'smtp').toLowerCase() === 'smtp') {
+      const reference = await sendSmtp(fields);
+      return reply(res, 200, { ok: true, messageId: reference });
+    }
     const response = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
       headers: {
@@ -167,6 +172,12 @@ module.exports = async function contact(req, res) {
     }
     return reply(res, 200, { ok: true, messageId: result.MessageID });
   } catch (error) {
+    console.warn('contact_send_failed', JSON.stringify({
+      transport: (process.env.POSTMARK_TRANSPORT || 'smtp').toLowerCase(),
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
+      code: typeof error.code === 'string' && /^[A-Z0-9_]{1,40}$/.test(error.code) ? error.code : 'SEND_FAILED',
+      responseCode: Number.isInteger(error.responseCode) ? error.responseCode : null
+    }));
     return reply(res, 502, { error: 'We could not confirm your submission. Please email contact@zaptech.com.au or call 03 4150 7515 before trying again.' });
   }
 };

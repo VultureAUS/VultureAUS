@@ -1,0 +1,11 @@
+{
+  "name": "zaptech-australia-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "nodemailer": "10.1.1"
+  }
+}

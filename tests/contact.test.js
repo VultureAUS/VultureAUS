@@ -11,6 +11,7 @@ beforeEach(() => {
   delete require.cache[require.resolve('../api/contact.js')];
   handler = require('../api/contact.js');
   process.env.POSTMARK_SERVER_TOKEN = 'mock-server-token';
+  process.env.POSTMARK_TRANSPORT = 'api';
   delete process.env.CONTACT_ALLOWED_ORIGINS;
   delete process.env.VERCEL;
   sent = [];
@@ -151,6 +152,57 @@ test('server diagnostics expose only selected metadata, never upstream tokens or
   assert.deepEqual(response.body, { enabled: true, tokenValid: true, serverId: 11146424, deliveryType: 'Live' });
   assert(!JSON.stringify(response.body).includes('do-not-leak'));
   assert(!JSON.stringify(response.body).includes('private-hook'));
+});
+
+test('SMTP default reuses the secret with mandatory TLS and waits for recipient acceptance', async () => {
+  const nodemailer = require('nodemailer');
+  const original = nodemailer.createTransport;
+  let config, mail, closed = false;
+  delete process.env.POSTMARK_TRANSPORT;
+  nodemailer.createTransport = options => {
+    config = options;
+    return { sendMail: async value => { mail = value; return { accepted: ['contact@zaptech.com.au'], rejected: [], response: '250 2.0.0 Message accepted' }; }, close: () => { closed = true; } };
+  };
+  try {
+    const response = await call();
+    assert.equal(response.code, 200);
+    assert.match(response.body.messageId, /^[a-f0-9-]{36}$/);
+    assert.equal(config.host, 'smtp.postmarkapp.com');
+    assert.equal(config.port, 587);
+    assert.equal(config.requireTLS, true);
+    assert.equal(config.tls.minVersion, 'TLSv1.2');
+    assert.deepEqual(config.auth, { user: 'mock-server-token', pass: 'mock-server-token' });
+    assert.equal(mail.to, 'contact@zaptech.com.au');
+    assert.equal(mail.replyTo, 'customer@example.com');
+    assert.equal(mail.headers['X-PM-Message-Stream'], 'outbound');
+    assert.equal(mail.headers['X-PM-Metadata-enquiry-reference'], response.body.messageId);
+    assert.equal(mail.messageId, `<${response.body.messageId}@zaptech.com.au>`);
+    assert.equal(closed, true);
+    assert.equal(sent.length, 0);
+  } finally { nodemailer.createTransport = original; }
+});
+
+test('SMTP rejection and timeout fail without API fallback or automatic retry', async () => {
+  const nodemailer = require('nodemailer');
+  const original = nodemailer.createTransport;
+  process.env.POSTMARK_TRANSPORT = 'smtp';
+  let attempts = 0, closed = 0;
+  try {
+    for (const outcome of [
+      { accepted: [], rejected: ['contact@zaptech.com.au'], response: '550 rejected' },
+      { accepted: ['contact@zaptech.com.au'], rejected: [], response: '451 Try later' },
+      Object.assign(new Error('private credential details'), { code: 'ETIMEDOUT' })
+    ]) {
+      nodemailer.createTransport = () => ({ sendMail: async () => { attempts++; if (outcome instanceof Error) throw outcome; return outcome; }, close: () => { closed++; } });
+      const response = await call();
+      assert.equal(response.code, 502);
+      assert.equal(response.body.ok, undefined);
+      assert(!JSON.stringify(response.body).includes('private credential'));
+    }
+    assert.equal(attempts, 3);
+    assert.equal(closed, 3);
+    assert.equal(sent.length, 0);
+  } finally { nodemailer.createTransport = original; }
 });
 
 test('diagnostics identify sandbox and invalid tokens without sending mail', async () => {
