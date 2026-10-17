@@ -8,16 +8,12 @@ Responsive website built from the approved charcoal-and-mint design. No build st
 - Email: contact@zaptech.com.au.
 - With Postmark configured, enquiries submit directly to `/api/contact`, which sends a transactional email from Zaptech Australia <contact@zaptech.com.au> to contact@zaptech.com.au. The visitor's email is set as Reply-To. The destination and sender cannot be overridden by visitors.
 - The page checks sending availability without exposing credentials. Until the token is configured (or if that initial check fails), the existing email-app flow remains available and clearly labelled. JavaScript-disabled visitors can use the email-app form or direct email link.
-- SMTP is the default, connecting to smtp.postmarkapp.com on port 587 with mandatory STARTTLS. The existing Server API Token is reused as username and password. Enable SMTP access in Postmark's server settings. Set POSTMARK_TRANSPORT=api and redeploy to use the previous REST path.
-- Success is shown only after SMTP returns a 250 acceptance for the fixed recipient, or REST returns ErrorCode 0 with Message OK. This confirms acceptance, not inbox delivery. Errors preserve entered fields. Requests are not automatically retried or switched between transports, to avoid duplicate emails.
-- The customer confirmation reads: "Thank you — your enquiry has been submitted. We'll be in touch within 1–2 business days." The email-destination notice and reference number are hidden from the configured form. SMTP enquiry references remain in the email, Message-ID header, Postmark metadata and private runtime logs for tracing; REST references remain provider MessageIDs. `/api/contact?check=server` performs a REST authentication check and reports only server ID and delivery type, never tokens, hooks or message content. It does not test SMTP availability. Compare the ID to the server shown in Postmark; sandbox servers do not deliver real mail.
+- SMTP is the default, connecting to smtp.postmarkapp.com on port 587 with mandatory STARTTLS. The existing Server API Token is reused as username and password. Enable SMTP access in Postmark's server settings.
+- Success is shown only after SMTP returns a 250 acceptance for the fixed recipient. This confirms acceptance, not inbox delivery. Errors preserve entered fields. Requests are not automatically retried or switched between transports, to avoid duplicate emails.
+- The customer confirmation reads: "Thank you — your enquiry has been submitted. We'll be in touch within 1–2 business days." The email-destination notice and reference number are hidden from the configured form. SMTP enquiry references remain in the email, Message-ID header, Postmark metadata and private runtime logs for tracing.
 - Clicking a service selects it in the contact form.
 
-## JetEmail activation
-
-The verified JetEmail domain can send using SMTP on port 587 with mandatory STARTTLS. Create an SMTP user allowed to send from zaptech.com.au, then save JETEMAIL_SMTP_HOST (the exact host shown in JetEmail), JETEMAIL_SMTP_USERNAME and JETEMAIL_SMTP_PASSWORD as Production environment variables in Vercel. Redeploy. Do not put credentials in source code or chat. When these three values are present, JetEmail is selected instead of Postmark; partial configuration disables sending to avoid silently using the wrong provider. No automatic provider fallback or retries occur. The email recipient, reply-to behavior, spam checks, private acceptance logs and application reference are retained. Confirm delivery with an authorised live test. Domain verification alone does not activate this connection.
-
-## Postmark setup (previous provider)
+## Postmark setup
 
 1. Use a Postmark server with live transactional sending approved and zaptech.com.au verified. The standard `outbound` transactional message stream is used.
 2. In Vercel project `website`, add **POSTMARK_SERVER_TOKEN** as a sensitive Production environment variable. Use a **Server API Token**, not the account-management token. Do not put the real value into a file, source code, browser script, commit, chat or screenshot.
@@ -31,7 +27,7 @@ Both https://zaptech.com.au and https://www.zaptech.com.au are allowed for conta
 
 The function enforces POST + JSON for submissions, checks the request origin, bounds payload and field sizes, restricts service names, rejects header-control characters, uses a hidden honeypot and minimum form completion time, and applies a best-effort per-instance throttle (five valid attempts per IP per ten minutes). IPs are hashed in memory and not logged. This throttle is not distributed and can reset with server instances; Vercel Firewall rate limiting or a verified challenge can be added if spam volume warrants it. Email contents are sent as plain text and are not stored by this application.
 
-Install dependencies with pnpm install --frozen-lockfile. Run tests with `node --test tests/contact.test.js tests/form.test.js`. Tests mock both Postmark sending methods; they send no email.
+Install dependencies with pnpm install --frozen-lockfile. Run tests with `node --test tests/contact.test.js tests/form.test.js`. Tests mock Postmark SMTP; they send no email.
 
 ## Hosting
 

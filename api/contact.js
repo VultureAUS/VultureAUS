@@ -1,7 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { sendSmtp, jetEmailSelected, jetEmailConfigured } = require('../lib/smtp');
+const { sendSmtp } = require('../lib/smtp');
 
 const SERVICES = new Set([
   'Web & Software Development', 'AI & Automation', 'Business Email & Cloud',
@@ -17,26 +17,8 @@ function reply(res, status, body) {
 }
 
 function isConfigured() {
-  if (jetEmailSelected()) return jetEmailConfigured();
   const token = process.env.POSTMARK_SERVER_TOKEN?.trim();
   return Boolean(token && token.toUpperCase() !== 'POSTMARK_API_TEST');
-}
-
-async function checkServer() {
-  if (!isConfigured()) return { enabled: false, tokenValid: false };
-  if (jetEmailSelected()) return { enabled: true, provider: 'JetEmail', transport: 'smtp', diagnosticNote: 'SMTP configuration is present. Authentication and delivery are not yet verified by this check.' };
-  try {
-    const response = await fetch('https://api.postmarkapp.com/server', {
-      headers: { Accept: 'application/json', 'X-Postmark-Server-Token': process.env.POSTMARK_SERVER_TOKEN.trim() },
-      signal: AbortSignal.timeout(8000)
-    });
-    const server = await response.json();
-    if (!response.ok || !Number.isInteger(server.ID)) return { enabled: true, tokenValid: false };
-    // The upstream response includes API tokens: return only these non-secret diagnostic fields.
-    return { enabled: true, tokenValid: true, serverId: server.ID, deliveryType: server.DeliveryType || 'Live' };
-  } catch {
-    return { enabled: true, tokenValid: null, diagnosticError: 'Postmark could not be reached.' };
-  }
 }
 
 function allowedOrigins() {
@@ -75,8 +57,7 @@ module.exports = async function contact(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (req.method === 'GET') {
-    const diagnostic = new URL(req.url || '/', 'https://website-zaptech1.vercel.app').searchParams.get('check') === 'server';
-    return reply(res, 200, diagnostic ? await checkServer() : { enabled: isConfigured() });
+    return reply(res, 200, { enabled: isConfigured() });
   }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -130,52 +111,11 @@ module.exports = async function contact(req, res) {
       res.setHeader('Retry-After', '600');
       return reply(res, 429, { error: 'Too many enquiries in a short time. Please try again in 10 minutes, or call 03 4150 7515.' });
     }
-    if (jetEmailSelected() || (process.env.POSTMARK_TRANSPORT || 'smtp').toLowerCase() === 'smtp') {
-      const reference = await sendSmtp(fields);
-      return reply(res, 200, { ok: true, messageId: reference });
-    }
-    const response = await fetch('https://api.postmarkapp.com/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Postmark-Server-Token': process.env.POSTMARK_SERVER_TOKEN.trim()
-      },
-      signal: AbortSignal.timeout(10000),
-      body: JSON.stringify({
-        From: 'Zaptech Australia <contact@zaptech.com.au>',
-        To: 'contact@zaptech.com.au',
-        ReplyTo: fields.email,
-        Subject: `Website enquiry — ${fields.service}`,
-        TextBody: [
-          'New Zaptech Australia website enquiry', '',
-          `Name: ${fields.name}`, `Email: ${fields.email}`, `Service: ${fields.service}`,
-          '', fields.message
-        ].join('\n'),
-        MessageStream: 'outbound',
-        Tag: 'website-enquiry',
-        TrackOpens: false,
-        TrackLinks: 'None'
-      })
-    });
-    const result = await response.json();
-    // Keep provider diagnostics in private runtime logs; never log credentials or enquiry fields.
-    const providerMessage = typeof result.Message === 'string' ? result.Message.trim() : '';
-    const isLiveAcceptance = providerMessage === 'OK';
-    console.info('postmark_send_result', JSON.stringify({
-      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
-      status: response.status,
-      errorCode: Number.isInteger(result.ErrorCode) ? result.ErrorCode : null,
-      providerMessage: ['OK', 'Test job accepted'].includes(providerMessage) ? providerMessage : 'Unrecognised response',
-      messageId: typeof result.MessageID === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(result.MessageID) ? result.MessageID : null
-    }));
-    if (!response.ok || result.ErrorCode !== 0 || !isLiveAcceptance || typeof result.MessageID !== 'string' || !result.MessageID.trim()) {
-      return reply(res, 502, { error: 'We could not submit your enquiry. Your details are still here. Please email contact@zaptech.com.au or call 03 4150 7515.' });
-    }
-    return reply(res, 200, { ok: true, messageId: result.MessageID });
+    const reference = await sendSmtp(fields);
+    return reply(res, 200, { ok: true, messageId: reference });
   } catch (error) {
     console.warn('contact_send_failed', JSON.stringify({
-      transport: jetEmailSelected() ? 'jetemail-smtp' : (process.env.POSTMARK_TRANSPORT || 'smtp').toLowerCase(),
+      transport: 'smtp',
       deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
       code: typeof error.code === 'string' && /^[A-Z0-9_]{1,40}$/.test(error.code) ? error.code : 'SEND_FAILED',
       responseCode: Number.isInteger(error.responseCode) ? error.responseCode : null
