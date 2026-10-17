@@ -21,8 +21,6 @@ const readiness = fetch('/api/contact', { cache: 'no-store', signal: AbortSignal
     }
   }).catch(() => {});
 
-document.getElementById('year').textContent = new Date().getFullYear();
-
 document.querySelectorAll('[data-service]').forEach((link) => {
   link.addEventListener('click', () => {
     serviceSelect.value = link.dataset.service;
