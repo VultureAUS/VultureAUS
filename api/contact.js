@@ -40,7 +40,7 @@ async function checkServer() {
 }
 
 function allowedOrigins() {
-  const origins = new Set(['https://website-zaptech1.vercel.app']);
+  const origins = new Set(['https://website-zaptech1.vercel.app', 'https://zaptech.com.au', 'https://www.zaptech.com.au']);
   for (const host of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]) {
     if (host) origins.add(`https://${host}`);
   }

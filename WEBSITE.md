@@ -25,7 +25,7 @@ The verified JetEmail domain can send using SMTP on port 587 with mandatory STAR
 4. Check `/api/contact`: `{"enabled":true}` means a nonempty live token is present. This does not verify token validity or delivery. A Postmark test token is deliberately not treated as live configuration.
 5. Submit a clearly labelled test enquiry to contact@zaptech.com.au, confirm Postmark acceptance, and verify inbox receipt. No automatic reply is sent to the visitor.
 
-If a custom domain is added, set `CONTACT_ALLOWED_ORIGINS` to its exact HTTPS origins (comma-separated). The existing website-zaptech1.vercel.app host and Vercel's current deployment and project production URLs are allowed automatically. No DNS changes are needed for this form if the sending domain is already verified.
+Both https://zaptech.com.au and https://www.zaptech.com.au are allowed for contact submissions by default, together with website-zaptech1.vercel.app and Vercel's current deployment and project production URLs. For any additional custom domains, set CONTACT_ALLOWED_ORIGINS to exact HTTPS origins (comma-separated). No email DNS changes are needed for this form if the sending domain is already verified.
 
 ## Validation and spam checks
 
@@ -35,7 +35,7 @@ Install dependencies with pnpm install --frozen-lockfile. Run tests with `node -
 
 ## Hosting
 
-The live site is `https://website-zaptech1.vercel.app`. Commits to the main branch of VultureAUS/VultureAUS deploy automatically through the existing Vercel project. No custom domain or DNS changes are included.
+The custom domain is https://www.zaptech.com.au, with https://zaptech.com.au redirecting to it. The original https://website-zaptech1.vercel.app address remains available. Commits to the main branch of VultureAUS/VultureAUS deploy automatically through the existing Vercel project. The owner configured the custom domains in Vercel; the application allows contact submissions from both.
 
 The static design can render on other hosts, but direct Postmark submission requires the Vercel Node.js function and environment variable. Existing unrelated repository files are preserved.
 

@@ -61,6 +61,14 @@ test('sends only to Zaptech with visitor Reply-To and plain-text body', async ()
   assert(sent[0].body.TextBody.includes(body.message));
   assert(!JSON.stringify(response.body).includes('mock-server-token'));
 });
+test('accepts both Zaptech domains by default without sending invalid submissions', async () => {
+  for (const origin of ['https://zaptech.com.au', 'https://www.zaptech.com.au']) {
+    assert.equal((await call({ body: {}, headers: { origin } })).code, 400);
+  }
+  assert.equal((await call({ body: {}, headers: { origin: 'https://zaptech.com.au.attacker.example' } })).code, 403);
+  assert.equal(sent.length, 0);
+});
+
 test('accepts Vercel deployment origins and explicitly configured custom domains', async () => {
   process.env.VERCEL_URL = 'website-123.vercel.app';
   process.env.CONTACT_ALLOWED_ORIGINS = 'https://zaptech.com.au, https://www.zaptech.com.au';
