@@ -21,7 +21,7 @@ function setup({ configured = true, success = true, networkError = false, valid 
     posts.push({ url, ...options });
     if (deferPost) await new Promise(resolve => { release = resolve; });
     if (networkError) throw new TypeError('Network unavailable');
-    return { ok: success, json: async () => success ? { ok: true } : { error: 'Please check your email address.' } };
+    return { ok: success, json: async () => success ? { ok: true, messageId: 'private-provider-reference' } : { error: 'Please check your email address.' } };
   };
   vm.runInNewContext(source, {
     document: { getElementById: id => elements[id], querySelectorAll: () => [] },
@@ -41,7 +41,9 @@ test('configured form sends JSON and clears fields only after confirmed success'
   assert.equal(ui.status.dataset.state, 'success');
   assert.equal(ui.button.disabled, false);
   assert.equal(ui.window.location.href, undefined);
-  assert(ui.elements['form-note'].textContent.includes('will be emailed'));
+  assert.equal(ui.elements['form-note'].hidden, true);
+  assert.equal(ui.elements['form-note'].textContent, '');
+  assert.equal(ui.status.textContent, "Thank you — your enquiry has been submitted. We'll be in touch within 1–2 business days.");
 });
 test('provider failure preserves fields and restores the send button', async () => {
   const ui = setup({ success: false });

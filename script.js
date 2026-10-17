@@ -16,7 +16,8 @@ const readiness = fetch('/api/contact', { cache: 'no-store', signal: AbortSignal
     const config = await response.json();
     directSubmissionAvailable = config.enabled === true;
     if (directSubmissionAvailable) {
-      formNote.textContent = 'Your enquiry will be emailed to contact@zaptech.com.au.';
+      formNote.textContent = '';
+      formNote.hidden = true;
     }
   }).catch(() => {});
 
@@ -62,8 +63,7 @@ contactForm.addEventListener('submit', async (event) => {
     }
     contactForm.reset();
     startedAt = Date.now();
-    const reference = typeof result.messageId === 'string' ? ` Reference: ${result.messageId}` : '';
-    showStatus(`Thanks — your enquiry has been submitted. We'll be in touch.${reference}`, 'success');
+    showStatus("Thank you — your enquiry has been submitted. We'll be in touch within 1–2 business days.", 'success');
   } catch (error) {
     const message = error.name === 'TimeoutError' || error.name === 'AbortError' || error instanceof TypeError
       ? 'We could not confirm your submission. Your details are still here. Please email contact@zaptech.com.au or call 03 4150 7515 before trying again.'
