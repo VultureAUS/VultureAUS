@@ -97,7 +97,7 @@ function openEmailDraft() {
 }
 
 if ('IntersectionObserver' in window) {
-  const homeLink = document.querySelector('.nav-home');
+  const homeLink = document.querySelector('.nav-services') || document.querySelector('.nav-home');
   const contactLink = document.querySelector('.nav-contact');
   new IntersectionObserver(([entry]) => {
     const active = entry.isIntersecting ? contactLink : homeLink;
